@@ -44,7 +44,7 @@ jobs:
           {
             echo "Автоматическая синхронизация с [flowseal/zapret-discord-youtube](https://github.com/flowseal/zapret-discord-youtube/commit/$(python3 -c "import json;print(json.load(open('upstream.json'))['commit'])")) ($ver)."
             echo
-            echo "**Перед мёрджем проверь дифф стратегий.** Zust сам отклонит опции вне белого списка, но лучше не пропускать странное."
+            echo "**Не пропускать странное и проверить diff-ы!!**"
             echo
             echo '```'
             cat changes.txt
