@@ -1,0 +1,65 @@
+# Каждые 3 часа забирает стратегии из flowseal/zapret-discord-youtube и, если что-то
+# изменилось, открывает (или обновляет) Pull Request «Синхронизация с flowseal».
+# В main ничего не попадает без твоего мёрджа: открой PR, посмотри дифф стратегий
+# (это обычный текст) и нажми Merge — можно с телефона.
+#
+# Нужно один раз включить: Settings → Actions → General →
+#   «Read and write permissions» и «Allow GitHub Actions to create and approve pull requests».
+name: sync
+
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: sync/flowseal
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: flowseal/zapret-discord-youtube
+          path: .upstream
+          fetch-depth: 1
+      - run: python3 sync.py .upstream | tee changes.txt
+      - name: Pull Request
+        run: |
+          rm -rf .upstream
+          git add -A -- . ':!changes.txt'
+          if git diff --cached --quiet; then
+            echo "Изменений нет"
+            exit 0
+          fi
+          ver=$(python3 -c "import json;d=json.load(open('upstream.json'));print(d['version'] or '', d['commit'][:7])")
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "синхронизация с flowseal $ver"
+          git push --force origin "HEAD:refs/heads/$BRANCH"
+
+          {
+            echo "Автоматическая синхронизация с [flowseal/zapret-discord-youtube](https://github.com/flowseal/zapret-discord-youtube/commit/$(python3 -c "import json;print(json.load(open('upstream.json'))['commit'])")) ($ver)."
+            echo
+            echo "**Перед мёрджем проверь дифф стратегий.** Zust сам отклонит опции вне белого списка, но лучше не пропускать странное."
+            echo
+            echo '```'
+            cat changes.txt
+            echo '```'
+          } > body.md
+
+          if gh pr view "$BRANCH" --json state -q .state 2>/dev/null | grep -q OPEN; then
+            gh pr edit "$BRANCH" --body-file body.md
+          else
+            gh pr create --head "$BRANCH" --base main --title "Синхронизация с flowseal $ver" --body-file body.md
+          fi
