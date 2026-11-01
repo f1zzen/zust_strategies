@@ -1,10 +1,3 @@
-# Каждые 3 часа забирает стратегии из flowseal/zapret-discord-youtube и, если что-то
-# изменилось, открывает (или обновляет) Pull Request «Синхронизация с flowseal».
-# В main ничего не попадает без твоего мёрджа: открой PR, посмотри дифф стратегий
-# (это обычный текст) и нажми Merge — можно с телефона.
-#
-# Нужно один раз включить: Settings → Actions → General →
-#   «Read and write permissions» и «Allow GitHub Actions to create and approve pull requests».
 name: sync
 
 on:
